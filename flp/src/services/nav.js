@@ -1,36 +1,6 @@
-import { postToShell } from './base';
+import { postToShell } from '../base';
 
-export interface INavigation {
-  navigateExternal(intent: Intent): Promise<any>;
-  isNavigationSupported(intent: Intent): Promise<any>;
-  isIntentSupported(aIntents: Array<string>): Promise<any>;
-  navigateInternal(innerRoute: string): Promise<any>;
-  getLinks(query: IntentQuery): Promise<IntentQueryResults>;
-  historyBack(steps: number): Promise<any>;
-  getInnerAppStateData(appStateKey: string): Promise<any>;
-  setInnerAppStateData(data: string): Promise<any>;
-  getDistinctSemanticObjects(): Promise<any>;
-}
-
-export interface Intent {
-  hash?: string;
-  semanticObject?: string;
-  action?: string;
-  params?: { [key: string]: string };
-  parameters?: { [key: string]: string }; //used by isNavigationSupported
-}
-
-export interface IntentQuery {
-  semanticObject: string;
-  params?: { [key: string]: string };
-}
-
-export interface IntentQueryResults {
-  intent: string;
-  text: string;
-}
-
-export function navigateExternal({ hash, semanticObject, action, params = {} }: Intent): Promise<any> {
+export function navigateExternal({ hash, semanticObject, action, params = {} }) {
   const service = 'sap.ushell.services.CrossApplicationNavigation.toExternal';
   let target;
 
@@ -52,7 +22,7 @@ export function navigateExternal({ hash, semanticObject, action, params = {} }: 
   return postToShell({ service, body });
 }
 
-export function isNavigationSupported({ hash, semanticObject, action, parameters = {} }: Intent): Promise<any> {
+export function isNavigationSupported({ hash, semanticObject, action, parameters = {} }) {
   const service = 'sap.ushell.services.CrossApplicationNavigation.isNavigationSupported';
   let target;
 
@@ -76,7 +46,7 @@ export function isNavigationSupported({ hash, semanticObject, action, parameters
   return postToShell({ service, body });
 }
 
-export function isIntentSupported(aIntents: Array<string>): Promise<any> {
+export function isIntentSupported(aIntents) {
   const service = 'sap.ushell.services.CrossApplicationNavigation.isIntentSupported';
 
   const body = {
@@ -85,7 +55,7 @@ export function isIntentSupported(aIntents: Array<string>): Promise<any> {
   return postToShell({ service, body });
 }
 
-export function navigateInternal(innerRoute: string = '/'): Promise<any> {
+export function navigateInternal(innerRoute = '/') {
   const service = 'sap.ushell.services.CrossApplicationNavigation.setInnerAppRoute';
   const body = {
     appSpecificRoute: prepareInnerRoute(innerRoute),
@@ -93,7 +63,7 @@ export function navigateInternal(innerRoute: string = '/'): Promise<any> {
   return postToShell({ service, body });
 }
 
-export function getLinks({ semanticObject, params = {} }: IntentQuery): Promise<IntentQueryResults> {
+export function getLinks({ semanticObject, params = {} }) {
   const service = 'sap.ushell.services.CrossApplicationNavigation.getLinks';
   const body = {
     semanticObject,
@@ -102,7 +72,7 @@ export function getLinks({ semanticObject, params = {} }: IntentQuery): Promise<
   return postToShell({ service, body });
 }
 
-export function historyBack(steps: number): Promise<any> {
+export function historyBack(steps) {
   const service = 'sap.ushell.services.CrossApplicationNavigation.historyBack';
   const body = {
     iSteps: steps,
@@ -110,7 +80,7 @@ export function historyBack(steps: number): Promise<any> {
   return postToShell({ service, body });
 }
 
-export function getInnerAppStateData(appStateKey: string): Promise<any> {
+export function getInnerAppStateData(appStateKey) {
   const service = 'sap.ushell.services.CrossApplicationNavigation.getAppStateData';
   const body = {
     sAppStateKey: appStateKey,
@@ -118,7 +88,7 @@ export function getInnerAppStateData(appStateKey: string): Promise<any> {
   return postToShell({ service, body });
 }
 
-export function setInnerAppStateData(data: string): Promise<any> {
+export function setInnerAppStateData(data) {
   const service = 'sap.ushell.services.CrossApplicationNavigation.setInnerAppStateData';
   const body = {
     sData: data,
@@ -126,13 +96,13 @@ export function setInnerAppStateData(data: string): Promise<any> {
   return postToShell({ service, body });
 }
 
-export function getDistinctSemanticObjects(): Promise<any> {
+export function getDistinctSemanticObjects() {
   const service = 'sap.ushell.services.NavTargetResolution.getDistinctSemanticObjects';
   const body = {};
   return postToShell({ service, body });
 }
 
-function prepareInnerRoute(innerRoute: string = '/'): string {
+function prepareInnerRoute(innerRoute = '/') {
   const start = innerRoute.charAt(0);
   if (start !== '/' && start !== '&') {
     innerRoute = '/' + innerRoute;

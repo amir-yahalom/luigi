@@ -1,34 +1,4 @@
-export interface ICommon {
-  getUrlParam(param: string, url: string): string;
-  parseMessageData(data: any): MessageData;
-  parseService(service: string): ParsedService;
-}
-
-export interface Message {
-  data: MessageData;
-  origin?: string;
-}
-
-export interface MessageData {
-  service: string;
-  body?: {};
-  request_id?: string;
-  type?: string;
-  status?: string;
-}
-
-export interface ParsedService {
-  namespace: string;
-  name: string;
-  action: string;
-}
-
-export function constructHash(
-  semanticObject: string,
-  action: string,
-  params: { [key: string]: string },
-  innerAppRoute: string,
-): string {
+export function constructHash(semanticObject, action, params, innerAppRoute) {
   const paramsFlat = [];
   for (let k in params) {
     paramsFlat.push(`${k}=${params[k]}`);
@@ -39,25 +9,25 @@ export function constructHash(
   return `#${semanticObject}-${action}?${paramsFlat.join('&')}&${innerAppRoute}`;
 }
 
-export function getUrlParam(param: string, url: string): string {
+export function getUrlParam(param, url) {
   const parsed = new RegExp(`[?&]${param}=([^&#]*)`, 'i').exec(url);
   return parsed ? parsed[1] : '';
 }
 
-export function parseMessageData(data: any): MessageData {
+export function parseMessageData(data) {
   if (typeof data === 'string') {
     try {
       data = JSON.parse(data);
     } catch (e) {
-      // not a message from cflp shell
+      // not a json, message is not from cflp shell
       return { service: '', body: {} };
     }
   }
   return data;
 }
 
-export function parseService(service = ''): ParsedService {
-  let parts: string[] = [];
+export function parseService(service = '') {
+  let parts = [];
   if (typeof service === 'string') {
     parts = service.split('.');
   }
@@ -65,7 +35,7 @@ export function parseService(service = ''): ParsedService {
   return { namespace: namespace.reverse().join('.'), name, action };
 }
 
-export function uuid(): string {
+export function uuid() {
   let dt = new Date().getTime();
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
     const r = (dt + Math.random() * 16) % 16 | 0;

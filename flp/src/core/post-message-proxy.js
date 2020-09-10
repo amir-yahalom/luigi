@@ -4,74 +4,44 @@ import { parseMessageData, parseService, uuid, MessageData, Message } from './co
 const logger = console;
 const DEFAULT_TIMEOUT = 7 * 1000; // 7 sec
 
-export interface TargetWindow {
-  postMessage: (msg: any, origin: string) => void;
-}
-
-export interface SelfWindow {
-  addEventListener: (e: string, h: (val?: any) => void) => void;
-  removeEventListener: (e: string, h: (val?: any) => void) => void;
-}
-
-export interface PostMessageRequest extends MessageData {
-  // will not be present in the actual request payload
-  origin?: string;
-  id?: string;
-  timeout?: number;
-}
-
-interface Deferred {
-  promise: Promise<any>;
-  reject: (reason?: any) => void;
-  resolve: (value?: any) => void;
-}
-
-export interface PostMessageProxyConfig {
-  allowedOrigins?: { [key: string]: boolean };
-  targetWindow?: TargetWindow;
-  selfWindow?: SelfWindow;
-}
-
 export class PostMessageProxy extends EventEmitter {
-  targetWindow: TargetWindow;
-  selfWindow: SelfWindow;
-
-  listener: (msg: Message) => void;
+  // targetWindow = null;
+  // selfWindow = null;
+  //
+  // listener = null;
 
   /**
    * Holds whitelisted/blacklisted origins for Post Message communication
    * @type { [string]: boolean }
    */
-  origins: { [key: string]: boolean };
+  // origins = {};
 
   /**
    * Holds pending promises to be resolved once the shell responds
    * @type { [string]: Promise }
    */
-  pending: { [key: string]: Deferred };
+  // pending = {};
 
-  constructor(cfg: PostMessageProxyConfig) {
+  constructor(cfg) {
     super();
-    this.origins = { ...(cfg.allowedOrigins || {}) } as any;
+    this.origins = { ...(cfg.allowedOrigins || {}) };
     this.pending = {};
     // enables to inject targetWindow
     // fallback to window.parent
     if (!cfg.targetWindow && typeof window !== 'undefined') {
-      cfg.targetWindow = window.parent as TargetWindow;
+      cfg.targetWindow = window.parent;
     }
-    this.targetWindow = cfg.targetWindow as TargetWindow;
+    this.targetWindow = cfg.targetWindow;
     // same approach for the app window
     if (!cfg.selfWindow && typeof window !== 'undefined') {
       cfg.selfWindow = window;
     }
-    this.selfWindow = cfg.selfWindow as SelfWindow;
-
-    this.listener = null as any;
+    this.selfWindow = cfg.selfWindow;
   }
 
   init() {
     if (!this.listener) {
-      this.listener = (msg: Message) => {
+      this.listener = (msg) => {
         this.handleMessage(msg);
       };
       this.addEventListener('message', this.listener);
@@ -80,13 +50,13 @@ export class PostMessageProxy extends EventEmitter {
 
   destroy() {
     if (this.listener) {
-      this.listener = null as any;
-      this.cleanPending('');
+      this.listener = null;
+      this._cleanPending('');
       this.removeEventListener('message', this.listener);
     }
   }
 
-  handleMessage(msg: Message): void {
+  handleMessage(msg) {
     if (!msg) {
       return;
     }
@@ -111,7 +81,7 @@ export class PostMessageProxy extends EventEmitter {
     }
   }
 
-  handleResponseMessage(data: MessageData): void {
+  handleResponseMessage(data) {
     if (data.request_id) {
       const deferred = this.pending[data.request_id];
       if (!deferred) {
@@ -121,7 +91,7 @@ export class PostMessageProxy extends EventEmitter {
       }
       delete this.pending[data.request_id];
       if (data.status === 'success') {
-        const body: any = data.body;
+        const body = data.body;
         deferred.resolve(body && body.result);
       } else {
         deferred.reject();
@@ -129,7 +99,7 @@ export class PostMessageProxy extends EventEmitter {
     }
   }
 
-  handleRequestMessage(data: MessageData): void {
+  handleRequestMessage(data) {
     const service = parseService(data.service);
     if (service.name) {
       // service call
@@ -137,28 +107,28 @@ export class PostMessageProxy extends EventEmitter {
     }
   }
 
-  postErrorResponse(msg: any, e: Error): Promise<any> {
+  postErrorResponse(msg, e) {
     return this.postToShell({ ...msg, type: 'response', status: 'error', body: { message: e.message } });
   }
 
-  async postToShell(msg: PostMessageRequest): Promise<any> {
+  async postToShell(msg) {
     let {
       id,
       service,
-      origin = this.defaultOrigin(),
+      origin = this._defaultOrigin(),
       type = 'request',
       body = {},
       status = 'success',
       timeout = DEFAULT_TIMEOUT,
       request_id,
     } = msg || {};
-    const req: MessageData = {
+    const req = {
       request_id: id || request_id || uuid(),
       type,
       service,
       body,
     };
-    id = req.request_id as string;
+    id = req.request_id;
     switch (type) {
       case 'response': {
         req.status = status;
@@ -172,7 +142,7 @@ export class PostMessageProxy extends EventEmitter {
           return pending[id].promise;
         }
         pending[id] = defer();
-        setTimeout(() => this.cleanPending(id), timeout);
+        setTimeout(() => this._cleanPending(id), timeout);
         postMessage(this.targetWindow, req, origin);
         return pending[id].promise;
       }
@@ -182,7 +152,7 @@ export class PostMessageProxy extends EventEmitter {
     }
   }
 
-  private cleanPending(id: string | undefined): void {
+  _cleanPending(id) {
     if (!id) {
       this.pending = {};
     } else if (id in this.pending) {
@@ -191,20 +161,20 @@ export class PostMessageProxy extends EventEmitter {
     }
   }
 
-  private defaultOrigin(): string {
+  _defaultOrigin() {
     return Object.keys(this.origins)[0] || '*';
   }
 
-  removeEventListener(e: string, h: (val?: any) => void): void {
+  removeEventListener(e, h) {
     return this.selfWindow && this.selfWindow.removeEventListener(e, h);
   }
 
-  addEventListener(e: string, h: (val?: any) => void): void {
+  addEventListener(e, h) {
     return this.selfWindow && this.selfWindow.addEventListener(e, h);
   }
 }
 
-function postMessage(targetWindow: TargetWindow = { postMessage: (r, o) => {} }, req = {}, origin = '*'): void {
+function postMessage(targetWindow = { postMessage: (r, o) => {} }, req = {}, origin = '*') {
   if (typeof req !== 'string') {
     req = JSON.stringify(req);
   }
@@ -212,9 +182,8 @@ function postMessage(targetWindow: TargetWindow = { postMessage: (r, o) => {} },
   targetWindow.postMessage(req, origin);
 }
 
-function defer(): Deferred {
-  let resolve: (value?: any) => void = () => {};
-  let reject: (value?: any) => void = () => {};
+function defer() {
+  let resolve, reject;
 
   const promise = new Promise((res, rej) => {
     resolve = res;
